@@ -109,8 +109,8 @@ following:
 
 * flask (optional).
 * ffmpeg (optional).
-* youtube-dl (option if you plan to cast youtube URLs or [supported
-  websites](https://rg3.github.io/youtube-dl/supportedsites.html)).
+* yt-dlp (option if you plan to cast youtube URLs or [supported
+  websites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)).
 
 #### Linux
 
@@ -128,8 +128,8 @@ following:
 * faac.
 * ffmpeg (optional).
 * PyQt5 (optional if you want to use the system tray menu).
-* youtube-dl (option if you plan to cast youtube URLs or [supported
-  websites](https://rg3.github.io/youtube-dl/supportedsites.html)).
+* yt-dlp (option if you plan to cast youtube URLs or [supported
+  websites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)).
 * soco (this module adds Sonos support to Mkchromecast).
 
 For those who don't like Pulseaudio, it is possible to [cast using
@@ -151,8 +151,8 @@ requirements are:
 * faac.
 * ffmpeg.
 * PyQt5 (optional if you want to use the system tray menu).
-* youtube-dl (option if you plan to cast youtube URLs or [supported
-  websites](https://rg3.github.io/youtube-dl/supportedsites.html)).
+* yt-dlp (option if you plan to cast youtube URLs or [supported
+  websites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)).
 * soco (this module adds Sonos support to Mkchromecast).
 
 
@@ -511,16 +511,16 @@ here](https://github.com/muammar/mkchromecast#macos).
 #### Playing Youtube URLs in Google Cast devices
 
 You can play Youtube URLs (or [other
-sites](https://rg3.github.io/youtube-dl/supportedsites.html) headlessly from
+sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)) headlessly from
 the command line:
 
 ```
 bin/mkchromecast -y https://www.youtube.com/watch\?v\=NVvAJhZVBT
 ```
 
-To use this function, you need to install `youtube-dl`. In macOS, this can be
-done with homebrew: `brew install youtube-dl`. In Debian based distros:
-`apt-get install youtube-dl`.
+To use this function, you need to install `yt-dlp`. In macOS, this can be
+done with homebrew: `brew install yt-dlp`. In Debian based distros:
+`apt-get install yt-dlp`.
 
 **Note**: you may need to enclose the URL between quotation marks, and only
 URLs over `https` are supported.

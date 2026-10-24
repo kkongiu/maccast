@@ -1,3 +1,12 @@
+> **Maccast — fork of mkchromecast.** This repository is a modified copy of
+> [mkchromecast](https://github.com/muammar/mkchromecast) by Muammar El Khatib,
+> distributed under the MIT license (see [`LICENSE`](LICENSE)), based on commit
+> `aad239c` (2026-09-14). The macOS/Apple Silicon changes, DLNA and VIDAA
+> support, the local web UI and the SwiftUI app are documented in
+> [`README.maccast.md`](README.maccast.md); the complete change list is in
+> [`UPSTREAM.md`](UPSTREAM.md). Everything below is the original upstream
+> documentation.
+
 Looking for help!
 =================
 

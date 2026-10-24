@@ -1,3 +1,8 @@
+![status: alpha](https://img.shields.io/badge/status-alpha-red)
+
+> ⚠️ **Status: alpha** — early-stage software, may be incomplete or unstable.
+> **Use at your own risk.**
+
 > **Maccast — fork of mkchromecast.** This repository is a modified copy of
 > [mkchromecast](https://github.com/muammar/mkchromecast) by Muammar El Khatib,
 > distributed under the MIT license (see [`LICENSE`](LICENSE)), based on commit

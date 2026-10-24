@@ -7,6 +7,7 @@ Google Cast device has to point out to http://ip:5000/stream
 import os
 import re
 import shutil
+import sys
 from typing import Union
 
 import mkchromecast
@@ -68,10 +69,19 @@ if _mkcc.operation == OpMode.YOUTUBE:
 
         url_data = urllib.parse.urlparse(_mkcc.youtube_url)
         query = urllib.parse.parse_qs(url_data.query)
-    video = query["v"][0]
+    video = query.get("v", ["?"])[0]
     print(colors.options("Playing video:") + " " + video)
-    command = ["yt-dlp", "-o", "-", _mkcc.youtube_url]
-    media_type = "audio/mp4"
+    # Use a combined (video+audio) mp4 and let yt-dlp fall back to the
+    # "android" client, which is required for videos where YouTube's default
+    # web client fails with "The page needs to be reloaded" (SABR/PO-token).
+    command = [
+        sys.executable, "-m", "yt_dlp",
+        "-o", "-",
+        "-f", "best[ext=mp4]/best",
+        "--extractor-args", "youtube:player_client=default,android",
+        _mkcc.youtube_url,
+    ]
+    media_type = "video/mp4" if _mkcc.videoarg else "audio/mp4"
 else:
     backend.name = _mkcc.backend
     backend.path = backend.name    

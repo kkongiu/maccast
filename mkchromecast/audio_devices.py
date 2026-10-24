@@ -1,7 +1,7 @@
 # This file is part of mkchromecast.
 
+import os
 import subprocess
-import os.path
 
 """
 These functions are used to switch input/out to BlackHole back and forth.
@@ -12,37 +12,43 @@ To call them:
 """
 
 
-def inputdev():
-    if os.path.exists("./bin/audiodevice") is True:
-        inputdevtosf2 = ['./bin/audiodevice input "BlackHole 16ch"']
+def _audiodevice_path() -> str:
+    """Percorso del binario `audiodevice` incluso nel pacchetto.
+
+    Cerca prima accanto al pacchetto (indipendente dalla cwd), poi nella cwd.
+    """
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for candidate in (
+        os.path.join(root, "bin", "audiodevice"),
+        os.path.join(os.getcwd(), "bin", "audiodevice"),
+        os.path.join(os.getcwd(), "audiodevice"),
+    ):
+        if os.path.exists(candidate):
+            return candidate
+    return "audiodevice"
+
+
+def _switch(port: str, device: str, blocking: bool) -> None:
+    cmd = [f'{_audiodevice_path()} {port} "{device}"']
+    if blocking:
+        subprocess.call(cmd, shell=True)
     else:
-        inputdevtosf2 = ['./audiodevice input "BlackHole 16ch"']
-    subprocess.Popen(inputdevtosf2, shell=True)
-    return
+        subprocess.Popen(cmd, shell=True)
+
+
+def inputdev():
+    _switch("input", "BlackHole 16ch", blocking=False)
 
 
 def outputdev():
-    if os.path.exists("./bin/audiodevice") is True:
-        outputdevtosf2 = ['./bin/audiodevice output "BlackHole 16ch"']
-    else:
-        outputdevtosf2 = ['./audiodevice output "BlackHole 16ch"']
-    subprocess.Popen(outputdevtosf2, shell=True)
-    return
+    _switch("output", "BlackHole 16ch", blocking=False)
 
 
 def inputint():
-    if os.path.exists("./bin/audiodevice") is True:
-        inputinttosf2 = ['./bin/audiodevice input "Internal Microphone"']
-    else:
-        inputinttosf2 = ['./audiodevice input "Internal Microphone"']
-    subprocess.call(inputinttosf2, shell=True)
-    return
+    # "internal" e' un alias riconosciuto dal binario e valido in ogni lingua,
+    # a differenza dei nomi localizzati dei dispositivi.
+    _switch("input", "internal", blocking=True)
 
 
 def outputint():
-    if os.path.exists("./bin/audiodevice") is True:
-        outputinttosf2 = ['./bin/audiodevice output "Internal Speakers"']
-    else:
-        outputinttosf2 = ['./audiodevice output "Internal Speakers"']
-    subprocess.call(outputinttosf2, shell=True)
-    return
+    _switch("output", "internal", blocking=True)

@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 import os
+import re
+import subprocess
 from typing import Optional, Union
 
 import mkchromecast
@@ -222,6 +224,7 @@ class VideoSettings:
     vcodec: str
     youtube_url: Optional[str]
     wayland_capture: Optional[tuple[int, int]] = None
+    platform: Optional[str] = None
 
 
 class Video:
@@ -256,11 +259,76 @@ class Video:
                         f"{self._settings.operation}")
 
     def _screencast_command(self) -> list[str]:
+        # macOS uses AVFoundation screen capture; the other paths are Linux-only.
+        if self._settings.platform == "Darwin":
+            return self._macos_screencast_command()
         # Wayland can't be grabbed with x11grab; capture via the portal +
         # PipeWire using a GStreamer pipeline instead. The X11 path is unchanged.
         if self._settings.wayland_capture is not None:
             return self._wayland_screencast_command()
         return self._x11_screencast_command()
+
+    def _macos_screen_index(self) -> str:
+        """Index of the AVFoundation 'Capture screen' device."""
+        override = os.environ.get("MKCHROMECAST_SCREEN_INDEX")
+        if override:
+            return override
+        try:
+            out = subprocess.run(
+                ["ffmpeg", "-hide_banner", "-f", "avfoundation",
+                 "-list_devices", "true", "-i", ""],
+                capture_output=True, text=True, timeout=8).stderr
+            match = re.search(r"\[(\d+)\]\s+Capture screen", out)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+        # Common default on Macs where the cameras occupy index 0/1.
+        return "2"
+
+    def _macos_screencast_command(self) -> list[str]:
+        screen_size = resolution.resolution(
+            self._settings.resolution or "1080p",
+            self._settings.screencast)
+        width, height = screen_size.split("x")
+        screen_index = self._macos_screen_index()
+        fps = str(self._settings.fps or 30)
+
+        maybe_veryfast_cmd: list[str]
+        if self._settings.vcodec != "h264_nvenc":
+            maybe_veryfast_cmd = ["-preset", "veryfast"]
+        else:
+            maybe_veryfast_cmd = []
+
+        # Short GOP + sub-second fragments keep the Chromecast's buffer small,
+        # which is what dominates end-to-end latency.
+        key_int = str(max(1, int(fps) // 2)) if fps.isdigit() else "12"
+        # AVFoundation has no system-audio capture without a loopback device
+        # (e.g. BlackHole), so we capture video only ("none" audio).
+        return ["ffmpeg",
+                "-f", "avfoundation",
+                "-capture_cursor", "1",
+                "-framerate", fps,
+                "-pixel_format", "uyvy422",
+                "-i", f"{screen_index}:none",
+                # Normalise the frame rate first: avfoundation reports a bogus
+                # 1000k tbr for screen capture, which makes x264 pick an
+                # unsupported level (6.2) and the Chromecast never starts.
+                "-vf", (f"fps={fps},"
+                        f"scale={width}:{height}:force_original_aspect_ratio="
+                        f"decrease,pad={width}:{height}:(ow-iw)/2:(oh-ih)/2"),
+                "-vcodec", self._settings.vcodec,
+                *maybe_veryfast_cmd,
+                "-tune", "zerolatency",
+                "-maxrate", "10000k",
+                "-bufsize", "20000k",
+                "-pix_fmt", "yuv420p",
+                "-g", key_int,
+                "-f", "mp4",
+                "-movflags", "+frag_keyframe+empty_moov+default_base_moof",
+                "-frag_duration", "250000",
+                "pipe:1",
+        ]
 
     def _x11_screencast_command(self) -> list[str]:
         screen_size = resolution.resolution(

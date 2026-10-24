@@ -6,3 +6,4 @@ netifaces
 pychromecast>=4.2
 PyQt5
 soco
+vidaa-control

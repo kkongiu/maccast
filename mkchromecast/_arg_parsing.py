@@ -7,6 +7,7 @@ the command-line interface.
 
 import argparse
 import os
+import platform as _platform
 
 from mkchromecast import constants
 from mkchromecast.resolution import resolutions
@@ -310,7 +311,8 @@ Parser.add_argument(
     "-p",
     "--port",
     type=int,
-    default="5000",
+    # macOS AirPlay Receiver listens on 5000, so default to 5100 there.
+    default="5100" if _platform.system() == "Darwin" else "5000",
     help="""
     Set the listening port for local webserver.
 

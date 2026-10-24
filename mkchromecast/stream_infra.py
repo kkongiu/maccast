@@ -199,7 +199,10 @@ class FlaskServer:
         else:
             process = Popen(FlaskServer._command, stdout=PIPE, bufsize=-1,
                             pass_fds=FlaskServer._pass_fds or ())
-        read_chunk = partial(os.read, process.stdout.fileno(), FlaskServer._chunk_size)
+        # For video, the audio-tuned default chunk size (64 bytes) starves the
+        # stream and adds seconds of latency. Read large blocks for video.
+        read_size = max(int(FlaskServer._chunk_size), 1 << 16)
+        read_chunk = partial(os.read, process.stdout.fileno(), read_size)
         return flask.Response(iter(read_chunk, b""), mimetype=FlaskServer._media_type)
 
     @staticmethod
@@ -266,9 +269,15 @@ class ParentMonitor(object):
 
     @staticmethod
     def _monitor_loop(platform: str):
-        with open("/tmp/mkchromecast.pid", "rb") as pid_file:
-            main_pid = int(pickle.load(pid_file))
-        print(colors.options("PID of main process:") + f" {main_pid}")
+        main_pid = None
+        try:
+            with open("/tmp/mkchromecast.pid", "rb") as pid_file:
+                main_pid = int(pickle.load(pid_file))
+        except Exception:
+            # Missing/unreadable pid file: fall back to the getppid() check.
+            pass
+        if main_pid is not None:
+            print(colors.options("PID of main process:") + f" {main_pid}")
 
         local_pid = os.getpid()
         print(colors.options("PID of streaming process:") + f" {os.getpid()}")
@@ -277,8 +286,13 @@ class ParentMonitor(object):
             try:
                 time.sleep(0.5)
                 # With this I ensure that if the main app fails, everything
-                # will get back to normal
-                if not psutil.pid_exists(main_pid):
+                # will get back to normal. getppid()==1 means we were
+                # reparented to launchd, i.e. the main process died (covers
+                # the case where it was SIGKILLed and atexit never ran).
+                orphaned = os.getppid() == 1
+                main_gone = (main_pid is not None
+                             and not psutil.pid_exists(main_pid))
+                if orphaned or main_gone:
                     if platform == "Darwin":
                         inputint()
                         outputint()
